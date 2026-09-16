@@ -441,6 +441,65 @@ julia> split_data([1,2,3], 3, 4)
  3
 ```
 """
+
+# Samir's additions
+# Need particle for SPH gas
+# Need particle to handle dark matter
+
+struct SPHGas{P, V, A, M, E, I<:Integer, H, Et} <: AbstractParticle3D
+    Pos::PVector{P}
+    Vel::PVector{V}
+    Acc::PVector{A}
+    Mass::M
+    ID::I
+    Collection::Collection
+
+    "Next integer step on the timeline."
+    Ti_endstep::I
+    "Present integer step on the timeline."
+    Ti_begstep::I
+    "For each two-particle interaction, GravCost += 1"
+    GravCost::I
+    
+    "Particle potential in the force field"
+    Potential::E
+    "Save the normalization of acceleration of last step. Useful in Tree n-body method."
+    OldAcc::A
+    "Defining the smoothing length of the particle"
+
+    # SPH
+    Entropy::Et
+    Density:: M/(4/3 * pi * H^3)
+    Hsml::H
+
+    # Left::F
+    # Right::F
+    # NumNgbFound::I
+
+    RotVel::PVector{V}
+     DivVel::T_1
+    CurlVel::T_1
+    dHsmlRho::dP
+
+    Pressure::Prs
+    DtEntropy::dE
+    MaxSignalVel::V
+end
+
+function SPHGas{F,I}(u::Nothing=nothing; id::I = zero(I), collection = STAR, Measurement=false) where {F<:AbstractFloat, I<:Integer}
+    f = Measurement ? measurement : identity
+    Star(
+        f(PVector(F)), f(PVector(F)), f(PVector(F)), f(zero(F)), id, collection,
+        zero(I), zero(I), zero(I),
+        f(zero(F)), f(zero(F)),
+
+        # 0.0, 0.0, 0.0,
+        # 0.0, 0.0, 0,
+        # PVector(F), 0.0, 0.0, 0.0,
+        # 0.0, 0.0, 0.0
+    )
+end
+
 function split_data(data::AbstractArray, i::Int64, N::Int64)
     if length(data) == 0
         return data
